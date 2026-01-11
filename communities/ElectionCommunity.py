@@ -6,25 +6,24 @@ from ipv8.peer import Peer
 
 from messages.message import MyMessage
 
-
-class MyCommunity(Community):
+class ElectionCommunity(Community):
     community_id = os.urandom(20)
 
     def __init__(self, settings: CommunitySettings) -> None:
         super().__init__(settings)
-        # Register the message handler for messages (with the identifier "1").
+
+        # Register the message handlers for messages.
         self.add_message_handler(MyMessage, self.on_message)
-        # The Lamport clock this peer maintains.
-        # This is for the example of global clock synchronization.
-        self.lamport_clock = 0
+
+        self.elections = []
 
     def started(self) -> None:
         async def start_communication() -> None:
-            if not self.lamport_clock:
+            if not self.elections:
                 # If we have not started counting, try boostrapping
                 # communication with our other known peers.
                 for p in self.get_peers():
-                    self.ez_send(p, MyMessage(self.lamport_clock))
+                    self.ez_send(p, MyMessage(666))
             else:
                 self.cancel_pending_task("start_communication")
 
@@ -35,8 +34,8 @@ class MyCommunity(Community):
 
     @lazy_wrapper(MyMessage)
     def on_message(self, peer: Peer, payload: MyMessage) -> None:
-        # Update our Lamport clock.
-        self.lamport_clock = max(self.lamport_clock, payload.electionId) + 1
-        print(self.my_peer, "current clock:", self.lamport_clock)
+        # Update our known elections.
+        self.elections.append(payload.electionId)
+        print(self.my_peer, "last election:", self.elections[-1])
         # Then synchronize with the rest of the network again.
-        self.ez_send(peer, MyMessage(self.lamport_clock))
+        # self.ez_send(peer, MyMessage(self.elections[-1]))

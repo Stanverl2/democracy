@@ -5,7 +5,7 @@ from ipv8_service import IPv8
 from ipv8.util import run_forever
 from pathlib import Path
 
-from communities.MyCommunity import MyCommunity
+from communities.ElectionCommunity import ElectionCommunity
 from config import DATA_PATH
 from models.election import Election
 from models.vote import Vote
@@ -31,12 +31,12 @@ async def start_communities(n: int) -> None:
         builder = ConfigBuilder().clear_keys().clear_overlays()
         os.makedirs("keys", exist_ok=True)
         builder.add_key("my peer", "medium", f"keys/ec{i}.pem")
-        builder.add_overlay("MyCommunity", "my peer",
+        builder.add_overlay("ElectionCommunity", "my peer",
                             [WalkerDefinition(Strategy.RandomWalk,
                                               10, {"timeout": 3.0})],
                             default_bootstrap_defs, {}, [("started",)])
         await IPv8(builder.finalize(),
-                   extra_communities={"MyCommunity": MyCommunity}).start()
+                   extra_communities={"ElectionCommunity": ElectionCommunity}).start()
     await run_forever()
 
 if __name__ == "__main__":
