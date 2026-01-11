@@ -19,4 +19,5 @@ venv.bak/
 # Keys folder
 keys/
 
-
+# Data folder
+data
