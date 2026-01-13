@@ -1,4 +1,5 @@
 from tkinter import Tk
+from typing import Callable
 
 from models.election import Election
 from models.person import Person
@@ -24,13 +25,20 @@ class Application:
         election_store (JSONStore[Election]): Store for elections.
         vote_store (JSONStore[Vote]): Store for votes.
     """
-    def __init__(self, election_store: JSONStore[Election], vote_store: JSONStore[Vote]):
+    def __init__(
+        self,
+        user: Person,
+        election_store: JSONStore[Election],
+        vote_store: JSONStore[Vote],
+        broadcast_new_election: Callable[[Election], None]
+    ):
+        self.user = user
+
         self.election_store = election_store
         self.vote_store = vote_store
         self.repo = ElectionRepository(election_store, vote_store)
 
-        # session user (lives as long as this Application instance)
-        self.user = Person()  # Person should generate an id by default
+        self.broadcast_new_election = broadcast_new_election
 
         self.root = Tk()
         self.root.title("Democracy")
@@ -66,6 +74,8 @@ class Application:
         self.election_store.add(election)
 
         self.list_frame.load(self.repo.get_all())
+
+        self.broadcast_new_election(election)
 
     def _on_select(self, election_id):
         """

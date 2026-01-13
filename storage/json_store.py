@@ -1,4 +1,5 @@
 import json
+import os
 
 from pathlib import Path
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
@@ -45,6 +46,9 @@ class JSONStore(Generic[T]):
 
         :return: None
         """
+        if not self.path.parent.exists():
+            os.makedirs(self.path.parent, exist_ok=True)
+
         with open(self.path, "w", encoding="utf-8") as fh:
             json.dump([self._dictify(obj) for obj in self._data], fh, indent=2)
 
