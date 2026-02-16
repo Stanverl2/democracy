@@ -36,8 +36,6 @@ class Election:
         """
         if "created_at" in data:
             data["created_at"] = parse_datetime(data["created_at"])
-        else:
-            data["created_at"] = None
 
         return Election(**data)
 

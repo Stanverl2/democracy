@@ -30,7 +30,8 @@ class Application:
         user: Person,
         election_store: JSONStore[Election],
         vote_store: JSONStore[Vote],
-        broadcast_new_election: Callable[[Election], None]
+        broadcast_new_election: Callable[[Election], None],
+        broadcast_new_vote: Callable[[Vote], None],
     ):
         self.user = user
 
@@ -39,6 +40,7 @@ class Application:
         self.repo = ElectionRepository(election_store, vote_store)
 
         self.broadcast_new_election = broadcast_new_election
+        self.broadcast_new_vote = broadcast_new_vote
 
         self.root = Tk()
         self.root.title("Democracy")
@@ -105,6 +107,8 @@ class Application:
 
         self._on_select(vote.election_id)
         self.list_frame.load(self.repo.get_all())
+
+        self.broadcast_new_vote(vote)
 
     def run(self):
         """

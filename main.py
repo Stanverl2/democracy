@@ -22,7 +22,8 @@ async def start_community(
     user_id: str,
     election_store: JSONStore[Election],
     vote_store: JSONStore[Vote],
-    election_added: Callable[[], None]
+    election_added: Callable[[], None],
+    vote_added: Callable[[], None]
 ) -> ElectionCommunity:
     builder = ConfigBuilder().clear_keys().clear_overlays()
 
@@ -37,7 +38,8 @@ async def start_community(
         initialize={
             "election_store": election_store,
             "vote_store": vote_store,
-            "election_added": election_added
+            "election_added": election_added,
+            "vote_added": vote_added
         },
         on_start=[("on_start",)]
     )
@@ -92,16 +94,28 @@ def main() -> None:
             return
         loop.call_soon_threadsafe(overlay.on_create_election, election)
 
-    # --- UI creation (main thread) ---
-    app = Application(user, election_store, vote_store, broadcast_new_election)
+    def broadcast_new_vote(vote: Vote) -> None:
+        overlay: Optional[ElectionCommunity] = community_ref["overlay"]
+        if overlay is None:
+            # Community not ready yet; could queue these if needed.
+            return
+        loop.call_soon_threadsafe(overlay.on_vote, vote)
 
-    # --- IPv8 -> UI callback (thread-safe via Tk) ---
+    # --- UI creation (main thread) ---
+    app = Application(user, election_store, vote_store, broadcast_new_election, broadcast_new_vote)
+
+    # --- IPv8 -> UI callbacks (thread-safe via Tk) ---
     def election_added() -> None:
         app.root.after(0, lambda: app.list_frame.load(app.repo.get_all()))
 
+    def vote_added() -> None:
+        election_id = app.repo.get(app.detail_frame.election_id_var.get())
+        if election_id:
+            app.root.after(0, lambda: app.detail_frame.show(app.repo.get(app.detail_frame.election_id_var.get())))
+
     # --- Start IPv8 / overlay on background loop ---
     async def start_and_capture() -> None:
-        overlay = await start_community(user.id, election_store, vote_store, election_added)
+        overlay = await start_community(user.id, election_store, vote_store, election_added, vote_added)
         community_ref["overlay"] = overlay
 
     fut = asyncio.run_coroutine_threadsafe(start_and_capture(), loop)
